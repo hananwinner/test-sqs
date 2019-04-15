@@ -89,12 +89,27 @@ def nack_message(m):
         pass
 
 
+def produce_event_message(m, status, _tic=None):
+    if _tic is not None:
+        _dur = time.time() - _tic
+    else:
+        _dur = "unknown"
+    event_q.send_message(
+        MessageBody="message {} {} in {}s\norig body: \n{}".format(m.message_id, status, _dur,  m.body),
+        MessageAttributes={
+            'duration': {
+                'StringValue': str(_dur),
+                'DataType': 'String'
+            }
+        }
+    )
 
 
 def nack_inflight_message():
     if in_flight_m:
         print('nacking inflight message {}'.format(in_flight_m.message_id))
         nack_message(in_flight_m)
+        produce_event_message(in_flight_m, "nacked on TERM")
     else:
         print('no inflight messages')
 
@@ -106,17 +121,6 @@ def sigterm_handler(signum, frame):
 
 signal.signal(signal.SIGTERM, sigterm_handler)
 
-
-def produce_event_message(m, status, dur):
-    event_q.send_message(
-        MessageBody="message {} {} in {}s\norig body: \n{}".format(m.message_id, status, dur,  m.body),
-        MessageAttributes={
-            'duration': {
-                'StringValue': str(dur),
-                'DataType': 'Number'
-            }
-        }
-    )
 
 
 def main():
@@ -138,21 +142,23 @@ def main():
                         consecutive_time_outs += 1
                         _status = _process_timed_out_message(q, m)
                         in_flight_m = None
+                        produce_event_message(m, _status, _tic)
                         raise toe
                     except OSError as ose:  # general engine error
                         print(ose)
                         nack_message(m)
                         in_flight_m = None
                         _status = "nacked"
+                        produce_event_message(m, _status, _tic)
                         raise ose
                     else:
                         consecutive_time_outs = 0
                         m.delete()
                         in_flight_m = None
                         _status = "acked"
-                    finally:
-                        _dur = time.time() - _tic
-                        produce_event_message(m, _status, _dur)
+                        produce_event_message(m, _status, _tic)
+
+
 
         except OSError:
             pass  # by choice we let it hang till we figure out
