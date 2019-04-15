@@ -4,7 +4,7 @@ import signal
 import botocore
 import time
 
-cur_m = None
+in_flight_m = None
 consecutive_time_outs = 0
 queues = []
 
@@ -92,9 +92,9 @@ def nack_message(m):
 
 
 def nack_inflight_message():
-    if cur_m:
-        print('nacking inflight message {}'.format(cur_m.message_id))
-        nack_message(cur_m)
+    if in_flight_m:
+        print('nacking inflight message {}'.format(in_flight_m.message_id))
+        nack_message(in_flight_m)
     else:
         print('no inflight messages')
 
@@ -120,36 +120,40 @@ def produce_event_message(m, status, dur):
 
 
 def main():
-    global cur_m
+    global in_flight_m
     global consecutive_time_outs
     while True:
         try:
             for q in queues:
                 for m in q.receive_messages(MaxNumberOfMessages=1, MessageAttributeNames=['attempts']):
-                    cur_m = m
+                    in_flight_m = m
                     _tic = time.time()
                     _status = ""
                     try:
                         process_message(m)
+                        in_flight_m = None
                         _status = "processed"
                     except TimeoutError as toe:
                         print(toe)
                         consecutive_time_outs += 1
                         _status = _process_timed_out_message(q, m)
+                        in_flight_m = None
                         raise toe
                     except OSError as ose:  # general engine error
                         print(ose)
                         nack_message(m)
+                        in_flight_m = None
                         _status = "nacked"
                         raise ose
                     else:
                         consecutive_time_outs = 0
                         m.delete()
+                        in_flight_m = None
                         _status = "acked"
                     finally:
                         _dur = time.time() - _tic
                         produce_event_message(m, _status, _dur)
-                        cur_m = None
+
         except OSError:
             pass  # by choice we let it hang till we figure out
         except TimeoutError:
