@@ -1,0 +1,18 @@
+{
+  "family": "stg-skillz-test-sqs",
+  "taskRoleArn": "arn:aws:iam::024965987595:role/ecs-task-role-slave",
+  "containerDefinitions": [
+    {
+      "name": "stg-skillz-test-sqs",
+      "image": "024965987595.dkr.ecr.eu-west-1.amazonaws.com/dev/test-sqs:latest",
+      "cpu": 1024,
+      "memoryReservation": 512,
+      "environment": [
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "eu-west-1"
+        }
+      ]
+    }
+  ]
+}
