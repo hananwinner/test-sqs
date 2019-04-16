@@ -32,7 +32,7 @@ def _parse_attribute(m, attr_name, attr_type='StringValue', default_value=None, 
         if _attr:
             _attr_value = _attr.get(attr_type)
             if _attr_value:
-                _attr_value = _cast(_attr_value)
+                _value = _cast(_attr_value)
     return _value
 
 
@@ -88,6 +88,7 @@ def nack_inflight_message():
 def sigterm_handler(signum, frame):
     print('external termination. \nsignum: {}\nframe: {}'.format(signum, frame))
     nack_inflight_message()
+    exit(0)
 
 
 signal.signal(signal.SIGTERM, sigterm_handler)
@@ -160,7 +161,7 @@ def main():
                     in_flight_m = m
                     _tic = time.time()
                     _status = ""
-                    m_timeout_previous_attempts = _parse_attribute(m, 'attempts')
+                    m_timeout_previous_attempts = _parse_attribute(m, 'attempts', default_value=0)
                     _exception = None
                     try:
                         try_process_message(m)
