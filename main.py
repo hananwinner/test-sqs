@@ -91,7 +91,7 @@ def sigterm_handler(signum, frame):
     exit(0)
 
 
-signal.signal(signal.SIGTERM, sigterm_handler)
+signal.signal(signal.SIGRTMIN+3, sigterm_handler)
 
 
 def try_process_message(m):

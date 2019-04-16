@@ -11,5 +11,7 @@ RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
 
 COPY main.py /usr/local/
 
+STOPSIGNAL SIGRTMIN+3
+
 WORKDIR /usr/local/
 CMD ["python3.6","-u","main.py"]
